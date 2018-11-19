@@ -3,7 +3,14 @@ const async = require('async');
 const cors = require('cors');
 const d3 = require('d3-force');
 const express = require('express');
+const fs = require('fs');
+const https = require('https');
 const MongoClient = require('mongodb').MongoClient;
+
+const credentials = {
+    key: fs.readFileSync('sslcert/privkey.pem', 'utf8'),
+    cert: fs.readFileSync('sslcert/fullchain.pem', 'utf8')
+};
 
 const url = process.argv[2];
 
@@ -65,4 +72,6 @@ app.get('/data', function (req, res) {
     res.send(data);
 });
 
-app.listen(3000);
+var httpsServer = https.createServer(credentials, app);
+
+httpsServer.listen(443);
