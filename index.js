@@ -1,56 +1,68 @@
 const assert = require('assert');
 const async = require('async');
-const express = require('express');
 const cors = require('cors');
+const d3 = require('d3-force');
+const express = require('express');
 const MongoClient = require('mongodb').MongoClient;
 
 const url = process.argv[2];
-const dbName = 'tmsdse';
 
-var client;
 var db;
+var data;
 
 MongoClient.connect(url, { useNewUrlParser: true }, function(err, c) {
-  assert.equal(null, err);
-  console.log("Connected successfully to server");
-  client = c;
-  db = c.db(dbName);
+    assert.equal(null, err);
+    console.log("Connected successfully to server");
+    db = c.db();
+
+    async.parallel({
+        nodes: function(callback) {
+            const nodes = db.collection('nodes');
+            nodes.find({}).toArray(callback);
+        },
+        links: function(callback) {
+            const links = db.collection('links');
+            links.find({}).toArray(callback);
+        }
+    }, function(err, result) {
+        const simulation = d3.forceSimulation(result.nodes)
+        .force("link", d3.forceLink().links(result.links).distance(40).id(d => d.id));
+
+        // calculate degree
+        result.nodes.forEach(d => {
+            d.degree = 0;
+        });
+        result.links.forEach(d => {
+            d.target.degree++;
+            d.source.degree++;
+        });
+
+        simulation.force("collide", d3.forceCollide(nodeSize))
+        .force("charge", d3.forceManyBody())
+        .force("x", d3.forceX())
+        .force("y", d3.forceY())
+        .on("end", () => {
+            console.log("simulation ended");
+
+            // remove object references
+            result.links.forEach(link => {
+                link.source = link.source.index;
+                link.target = link.target.index;
+            });
+            data = result;
+        });
+    });
 });
 
-function getGraph(callback) {
-  async.parallel({
-    nodes: function(callback) {
-      const nodes = db.collection('nodes');
-      nodes.find({}).toArray(callback);
-    },
-    links: function(callback) {
-      const links = db.collection('links');
-      links.find({}).toArray(callback);
-    }
-  }, function(err, result) {
-    result.links.forEach(link => {
-      link.source = getNumericalID(link.source);
-      link.target = getNumericalID(link.target);
-    });
-    callback(err, result);
-
-    function getNumericalID(name) {
-      for (let i = 0; i < result.nodes.length; i++) {
-        if (result.nodes[i].id == name) return i;
-      }
-      return null;
-    }
-  });
+function nodeSize(d) {
+    return Math.sqrt(d.degree) + 5;
 }
 
 var app = express();
 app.use(cors()); // enable cross-origin requests
 
 app.get('/data', function (req, res) {
-  getGraph((err, graph) => {
-    if (err) console.log(err);
-    res.send(graph);
-  })
+    res.send(data);
 });
 
 app.listen(3000);
