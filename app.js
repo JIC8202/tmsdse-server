@@ -3,14 +3,11 @@ const async = require('async');
 const cors = require('cors');
 const d3 = require('d3-force');
 const express = require('express');
-const fs = require('fs');
-const https = require('https');
 const MongoClient = require('mongodb').MongoClient;
 
-const credentials = {
-    key: fs.readFileSync('sslcert/privkey.pem', 'utf8'),
-    cert: fs.readFileSync('sslcert/fullchain.pem', 'utf8')
-};
+const dataRoute = require('./routes/data');
+const linkRoute = require('./routes/link');
+const nodeRoute = require('./routes/node');
 
 const url = process.argv[2];
 
@@ -19,10 +16,11 @@ var data;
 
 MongoClient.connect(url, { useNewUrlParser: true }, function(err, c) {
     assert.equal(null, err);
-    console.log("Connected successfully to server");
+    console.log('Connected successfully to server');
     db = c.db();
+    app.locals.db = db;
 
-    async.parallel({
+    /*async.parallel({
         nodes: function(callback) {
             const nodes = db.collection('nodes');
             nodes.find({}).toArray(callback);
@@ -33,7 +31,7 @@ MongoClient.connect(url, { useNewUrlParser: true }, function(err, c) {
         }
     }, function(err, result) {
         const simulation = d3.forceSimulation(result.nodes)
-        .force("link", d3.forceLink().links(result.links).distance(40).id(d => d.id));
+        .force('link', d3.forceLink().links(result.links).distance(40).id(d => d.id));
 
         // calculate degree
         result.nodes.forEach(d => {
@@ -44,12 +42,12 @@ MongoClient.connect(url, { useNewUrlParser: true }, function(err, c) {
             d.source.degree++;
         });
 
-        simulation.force("collide", d3.forceCollide(nodeSize))
-        .force("charge", d3.forceManyBody())
-        .force("x", d3.forceX())
-        .force("y", d3.forceY())
-        .on("end", () => {
-            console.log("simulation ended");
+        simulation.force('collide', d3.forceCollide(nodeSize))
+        .force('charge', d3.forceManyBody())
+        .force('x', d3.forceX())
+        .force('y', d3.forceY())
+        .on('end', () => {
+            console.log('simulation ended');
 
             // remove object references
             result.links.forEach(link => {
@@ -58,7 +56,7 @@ MongoClient.connect(url, { useNewUrlParser: true }, function(err, c) {
             });
             data = result;
         });
-    });
+    });*/
 });
 
 function nodeSize(d) {
@@ -68,10 +66,8 @@ function nodeSize(d) {
 var app = express();
 app.use(cors()); // enable cross-origin requests
 
-app.get('/data', function (req, res) {
-    res.send(data);
-});
+app.use('/data', dataRoute);
+app.use('/link', linkRoute);
+app.use('/node', nodeRoute);
 
-var httpsServer = https.createServer(credentials, app);
-
-httpsServer.listen(443);
+module.exports = app;
