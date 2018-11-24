@@ -6,7 +6,8 @@ router.get('/', (req, res) => {
     if (data) {
         res.status(200).json({
             error: false,
-            data
+            nodes: data.nodes,
+            links: data.links
         });
     } else {
         res.status(503).json({
