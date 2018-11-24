@@ -44,6 +44,12 @@ module.exports = class {
                 links.find({}, {projection:{_id: 0}}).toArray(callback);
             }
         });
+
+        // filter broken links
+        let nodeSet = new Set(data.nodes.map(node => node.id));
+        data.links = data.links.filter(link =>
+            nodeSet.has(link.source) && nodeSet.has(link.target));
+
         return await this._simulate(data);
     }
 
