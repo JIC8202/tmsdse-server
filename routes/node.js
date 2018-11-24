@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
 
+const Action = require('../actions');
+
 router.post('/:id', async (req, res) => {
     let db = res.app.locals.db;
     let id = req.params.id;
     let group = req.body.group;
 
-    await db.collection('nodes').updateOne(
+    db.collection('nodes').replaceOne(
         {id},
-        {$set: {id, group}},
+        {id, group},
+        {upsert: true}
+    );
+
+    db.collection('dnodes').replaceOne(
+        {id},
+        {id, group, action: Action.UPDATE},
         {upsert: true}
     );
 
@@ -23,8 +31,14 @@ router.delete('/:id', async (req, res) => {
     let db = res.app.locals.db;
     let id = req.params.id;
 
-    await db.collection('nodes').deleteOne(
+    db.collection('nodes').deleteOne(
         {id}
+    );
+
+    db.collection('dnodes').replaceOne(
+        {id},
+        {id, action: Action.DELETE},
+        {upsert: true}
     );
 
     res.app.locals.simulation.update();

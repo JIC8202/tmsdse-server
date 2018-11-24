@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
 
+const Action = require('../actions');
+
 router.post('/:source/:target', async (req, res) => {
     let db = res.app.locals.db;
     let source = req.params.source;
     let target = req.params.target;
 
-    await db.collection('links').updateOne(
+    db.collection('links').replaceOne(
         {source, target},
-        {$set: {source, target}},
+        {source, target},
+        {upsert: true}
+    );
+
+    db.collection('dlinks').replaceOne(
+        {source, target},
+        {source, target, action: Action.UPDATE},
         {upsert: true}
     );
 
@@ -24,8 +32,14 @@ router.delete('/:source/:target', async (req, res) => {
     let source = req.params.source;
     let target = req.params.target;
 
-    await db.collection('links').deleteOne(
+    db.collection('links').deleteOne(
         {source, target}
+    );
+
+    db.collection('dlinks').replaceOne(
+        {source, target},
+        {source, target, action: Action.DELETE},
+        {upsert: true}
     );
 
     res.app.locals.simulation.update();
