@@ -76,7 +76,15 @@ module.exports = class {
                 data.links.forEach(link => {
                     link.source = link.source.index;
                     link.target = link.target.index;
+                    delete link.index;
                 });
+                // remove unnecessary data
+                data.nodes.forEach(node => {
+                    delete node.degree;
+                    delete node.index;
+                    delete node.vx;
+                    delete node.vy;
+                })
                 resolve(data);
             });
         });
