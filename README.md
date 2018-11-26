@@ -6,7 +6,7 @@ All API endpoints respond with a JSON object containing an `"error"` boolean, wh
 
 ### Get graph data
 `GET /data`  
-Returns the latest rendered graph as a list of nodes and links.
+Returns the latest rendered graph as a list of nodes and links. Note that graph changes are not immediately reflected by this endpoint, as the force-directed simulation takes time to update.
 ```
 fetch('https://example.com/data')
 .then(res => res.json())
