@@ -12,7 +12,13 @@ const url = process.argv[2];
 
 module.exports = async function() {
     var app = express();
-    app.use(cors()); // enable cross-origin requests
+
+    // enable cross-origin requests
+    app.use(cors());
+
+    // accept json and urlencoded body formats
+    app.use(express.json());
+    app.use(express.urlencoded({extended: true}));
 
     app.use('/data', dataRoute);
     app.use('/link', linkRoute);
