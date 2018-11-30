@@ -3,10 +3,11 @@ const {parentPort, workerData} = require('worker_threads');
 
 let data = workerData;
 
+// link force resolves source/target to object references, so run it first
 let simulation = d3.forceSimulation(data.nodes)
     .force('link', d3.forceLink().links(data.links).distance(40).id(d => d.id));
 
-// calculate degree
+// calculate degree of nodes
 data.nodes.forEach(d => {
     d.degree = 0;
 });
@@ -15,19 +16,17 @@ data.links.forEach(d => {
     d.source.degree++;
 });
 
-simulation.force('collide', d3.forceCollide(_nodeSize))
+simulation.force('collide', d3.forceCollide(nodeSize))
     .force('charge', d3.forceManyBody())
     .force('x', d3.forceX())
     .force('y', d3.forceY())
     .stop();
 
-console.time("simulation");
-for (var i = 0, n = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay())); i < n; ++i) {
+// run synchronously
+while (simulation.alpha() > simulation.alphaMin())
     simulation.tick();
-}
-console.timeEnd("simulation");
 
-// remove object references
+// replace object references with indices
 data.links.forEach(link => {
     link.source = link.source.index;
     link.target = link.target.index;
@@ -43,6 +42,6 @@ data.nodes.forEach(node => {
 
 parentPort.postMessage(data);
 
-function _nodeSize(d) {
+function nodeSize(d) {
     return Math.sqrt(d.degree) + 5;
 }
