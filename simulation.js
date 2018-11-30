@@ -1,6 +1,6 @@
 const async = require('async');
-const d3 = require('d3-force');
 const util = require('util');
+const {Worker} = require('worker_threads');
 
 const parallel = util.promisify(async.parallel);
 
@@ -54,43 +54,16 @@ module.exports = class {
     }
 
     _simulate(data) {
-        return new Promise(resolve => {
-            let simulation = d3.forceSimulation(data.nodes)
-            .force('link', d3.forceLink().links(data.links).distance(40).id(d => d.id));
-
-            // calculate degree
-            data.nodes.forEach(d => {
-                d.degree = 0;
+        return new Promise((resolve, reject) => {
+            const worker = new Worker('./worker.js', {
+                workerData: data
             });
-            data.links.forEach(d => {
-                d.target.degree++;
-                d.source.degree++;
-            });
-
-            simulation.force('collide', d3.forceCollide(this._nodeSize))
-            .force('charge', d3.forceManyBody())
-            .force('x', d3.forceX())
-            .force('y', d3.forceY())
-            .on('end', () => {
-                // remove object references
-                data.links.forEach(link => {
-                    link.source = link.source.index;
-                    link.target = link.target.index;
-                    delete link.index;
-                });
-                // remove unnecessary data
-                data.nodes.forEach(node => {
-                    delete node.degree;
-                    delete node.index;
-                    delete node.vx;
-                    delete node.vy;
-                })
-                resolve(data);
+            worker.on('message', resolve);
+            worker.on('error', reject);
+            worker.on('exit', (code) => {
+                if (code !== 0)
+                    reject(new Error(`Worker stopped with exit code ${code}`));
             });
         });
-    }
-
-    _nodeSize(d) {
-        return Math.sqrt(d.degree) + 5;
     }
 }
