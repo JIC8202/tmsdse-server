@@ -8,7 +8,7 @@ router.post('/:source/:target', async (req, res) => {
     let source = req.params.source;
     let target = req.params.target;
 
-    db.collection('links').replaceOne(
+    await db.collection('links').replaceOne(
         {source, target},
         {source, target},
         {upsert: true}
@@ -32,7 +32,7 @@ router.delete('/:source/:target', async (req, res) => {
     let source = req.params.source;
     let target = req.params.target;
 
-    db.collection('links').deleteOne(
+    await db.collection('links').deleteOne(
         {source, target}
     );
 

@@ -8,7 +8,7 @@ router.post('/:id', async (req, res) => {
     let id = req.params.id;
     let group = req.body.group;
 
-    db.collection('nodes').replaceOne(
+    await db.collection('nodes').replaceOne(
         {id},
         {id, group},
         {upsert: true}
@@ -31,7 +31,7 @@ router.delete('/:id', async (req, res) => {
     let db = res.app.locals.db;
     let id = req.params.id;
 
-    db.collection('nodes').deleteOne(
+    await db.collection('nodes').deleteOne(
         {id}
     );
 
